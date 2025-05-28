@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Crypto Screener</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #333; color: white; cursor: pointer; }
+        tr:hover { background-color: #f1f1f1; }
+        input { padding: 8px; margin-bottom: 20px; width: 100%; }
+    </style>
+</head>
+<body>
+<h1>Crypto Screener - Top 250</h1>
+<input type="text" id="search" placeholder="Search by name or symbol..." onkeyup="filterTable()">
+
+<table id="cryptoTable">
+    <thead>
+        <tr>
+            <th onclick="sortTable(0)">Symbol</th>
+            <th onclick="sortTable(1)">Name</th>
+            <th>Price</th>
+            <th onclick="sortTable(3)">% 1D</th>
+            <th onclick="sortTable(4)">% 7D</th>
+            <th onclick="sortTable(5)">% 30D</th>
+            <th>7D Chart</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for coin in coins %}
+        <tr>
+            <td>{{ coin.symbol }}</td>
+            <td>{{ coin.name }}</td>
+            <td>${{ coin.price }}</td>
+            <td>{{ coin.change_1d }}%</td>
+            <td>{{ coin.change_7d }}%</td>
+            <td>{{ coin.change_30d }}%</td>
+            <td><canvas id="chart{{ loop.index0 }}" width="100" height="30"></canvas></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<script>
+function filterTable() {
+    let input = document.getElementById("search");
+    let filter = input.value.toUpperCase();
+    let table = document.getElementById("cryptoTable");
+    let tr = table.getElementsByTagName("tr");
+    for (let i = 1; i < tr.length; i++) {
+        let td1 = tr[i].getElementsByTagName("td")[0];
+        let td2 = tr[i].getElementsByTagName("td")[1];
+        if (td1 && td2) {
+            let txtValue = td1.textContent + " " + td2.textContent;
+            tr[i].style.display = txtValue.toUpperCase().includes(filter) ? "" : "none";
+        }
+    }
+}
+
+function sortTable(n) {
+    let table = document.getElementById("cryptoTable");
+    let switching = true;
+    let dir = "asc";
+    let rows, i, x, y, shouldSwitch, switchcount = 0;
+
+    while (switching) {
+        switching = false;
+        rows = table.rows;
+        for (i = 1; i < (rows.length - 1); i++) {
+            shouldSwitch = false;
+            x = rows[i].getElementsByTagName("TD")[n];
+            y = rows[i + 1].getElementsByTagName("TD")[n];
+            let xVal = isNaN(parseFloat(x.innerHTML)) ? x.innerHTML.toLowerCase() : parseFloat(x.innerHTML);
+            let yVal = isNaN(parseFloat(y.innerHTML)) ? y.innerHTML.toLowerCase() : parseFloat(y.innerHTML);
+            if ((dir === "asc" && xVal > yVal) || (dir === "desc" && xVal < yVal)) {
+                shouldSwitch = true;
+                break;
+            }
+        }
+        if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+            switchcount++;
+        } else {
+            if (switchcount === 0 && dir === "asc") {
+                dir = "desc";
+                switching = true;
+            }
+        }
+    }
+}
+
+window.onload = function() {
+    {% for coin in coins %}
+    new Chart(document.getElementById('chart{{ loop.index0 }}'), {
+        type: 'line',
+        data: {
+            labels: [...Array({{ coin.sparkline | length }})].map((_, i) => i),
+            datasets: [{
+                data: {{ coin.sparkline }},
+                borderColor: 'blue',
+                borderWidth: 1,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: false,
+            scales: { x: { display: false }, y: { display: false } },
+            plugins: { legend: { display: false } }
+        }
+    });
+    {% endfor %}
+};
+</script>
+</body>
+</html>
