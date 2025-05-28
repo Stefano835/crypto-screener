@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -22,11 +21,16 @@ PARAMS = {
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     async with httpx.AsyncClient() as client:
-	r = await client.get(COINGECKO_URL, params=PARAMS)
-	if r.status_code != 200:
-    	print(f"❌ Errore API CoinGecko: {r.status_code} - {r.text}")
-    	return templates.TemplateResponse("dashboard.html", {"request": request, "coins": []})
-data = r.json()
+        r = await client.get(COINGECKO_URL, params=PARAMS)
+        if r.status_code != 200:
+            print(f"❌ Errore API CoinGecko: {r.status_code} - {r.text}")
+            return templates.TemplateResponse("dashboard.html", {"request": request, "coins": []})
+
+        try:
+            data = r.json()
+        except Exception as e:
+            print(f"❌ Errore nel parsing JSON: {e}")
+            return templates.TemplateResponse("dashboard.html", {"request": request, "coins": []})
 
     filtered = []
     for coin in data:
@@ -49,3 +53,4 @@ data = r.json()
             continue
 
     return templates.TemplateResponse("dashboard.html", {"request": request, "coins": filtered})
+
