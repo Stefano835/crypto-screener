@@ -22,8 +22,11 @@ PARAMS = {
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     async with httpx.AsyncClient() as client:
-        r = await client.get(COINGECKO_URL, params=PARAMS)
-        data = r.json()
+r = await client.get(COINGECKO_URL, params=PARAMS)
+        if r.status_code != 200:
+            print(f"❌ Errore API CoinGecko: {r.status_code} - {r.text}")
+            return templates.TemplateResponse("dashboard.html", {"request": request, "coins": []})
+data = r.json()
 
     filtered = []
     for coin in data:
